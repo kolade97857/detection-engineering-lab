@@ -1,0 +1,31 @@
+title: Suspicious PowerShell Execution with Hidden Window or Encoded Command
+id: 4eac6d7a-12e8-4c9f-a1b2-5f6d8a9c0e11
+status: experimental
+description: Detects PowerShell process creation using hidden-window or encoded-command arguments. These indicators require investigation and do not independently prove malicious activity.
+author: Detection Engineering Lab
+date: 2026/10/15
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_image:
+        Image|endswith:
+            - '\\powershell.exe'
+            - '\\pwsh.exe'
+    selection_hidden:
+        CommandLine|contains:
+            - '-WindowStyle Hidden'
+            - '-w hidden'
+    selection_encoded:
+        CommandLine|contains:
+            - '-EncodedCommand'
+            - '-enc '
+    condition: selection_image and (selection_hidden or selection_encoded)
+falsepositives:
+    - Legitimate administrative scripts
+    - Automation tools that run PowerShell in hidden windows
+    - Authorized scripts that use encoded commands
+level: medium
+tags:
+    - attack.execution
+    - attack.t1059.001

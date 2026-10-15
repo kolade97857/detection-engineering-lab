@@ -1,0 +1,15 @@
+index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
+| rex field=_raw "<EventID>(?<sysmon_event_id>\d+)</EventID>"
+| where sysmon_event_id="1"
+| rex field=_raw "Data Name='Image'>(?<process_image>[^<]*)</Data>"
+| rex field=_raw "Data Name='CommandLine'>(?<command_line>[^<]*)</Data>"
+| rex field=_raw "Data Name='User'>(?<process_user>[^<]*)</Data>"
+| where match(process_image,"(?i)(\\\\powershell\.exe|\\\\pwsh\.exe)$")
+| where match(command_line,"(?i)(-windowstyle\s+hidden|-w\s+hidden|-encodedcommand|-enc\s)")
+| eval detection_reason=case(
+    match(command_line,"(?i)-windowstyle\s+hidden|-w\s+hidden"),"Hidden PowerShell window",
+    match(command_line,"(?i)-encodedcommand|-enc\s"),"Encoded PowerShell command",
+    true(),"Other"
+)
+| table _time process_user process_image command_line detection_reason
+| sort - _time
